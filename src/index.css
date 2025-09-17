@@ -1,0 +1,26 @@
+@@ .. @@
+ }
+
+ @layer base {
++  @font-face {
++    font-family: 'Gilroy-Heavy';
++    src: url('/Gilroy-Heavy.woff2') format('woff2'),
++         url('/Gilroy-Heavy.ttf') format('truetype');
++    font-weight: 900;
++    font-style: normal;
++    font-display: swap;
++  }
++
+   * {
+     @apply border-border;
+   }
+   body {
+     @apply bg-background text-foreground;
++    font-family: 'Inter', sans-serif;
+   }
+-  
+-  /* Apply Poppins font to all headings and titles */
+-  h1, h2, h3, h4, h5, h6 {
+-    font-family: 'Poppins', sans-serif;
+-  }
+ }
