@@ -47,7 +47,7 @@ A comprehensive web application for helping users build strong, evidence-backed 
 - **React 18** - Modern React with hooks
 - **TypeScript** - Type-safe development
 - **Tailwind CSS v4** - Utility-first styling
-- **Vite** - Fast build tool
+- **Next.js** - React framework with SSR
 - **Shadcn/ui** - Accessible component library
 - **Lucide React** - Icon library
 
@@ -66,12 +66,12 @@ A comprehensive web application for helping users build strong, evidence-backed 
 ## 🔧 Configuration
 
 ### Environment Variables
-- `VITE_APP_NAME` - Application name
-- `VITE_FIREBASE_*` - Firebase configuration (if using)
-- `VITE_API_BASE_URL` - API endpoint
+- `NEXT_PUBLIC_APP_NAME` - Application name
+- `NEXT_PUBLIC_FIREBASE_*` - Firebase configuration (if using)
+- `NEXT_PUBLIC_API_BASE_URL` - API endpoint
 
 ### Build Configuration
-- **Vite:** Modern build tool with HMR
+- **Next.js:** React framework with SSR and app router
 - **TypeScript:** Strict type checking
 - **ESLint:** Code linting and formatting
 

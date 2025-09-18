@@ -9,7 +9,6 @@ export const metadata = {
   title: 'ClaimEase — Make your PIP claim easier',
   description: 'Turn your daily experiences into clear, DWP‑friendly answers. ClaimEase rewrites your words for PIP in 10–15 minutes. One‑time £49. Free appeal support.',
   robots: 'index,follow',
-  themeColor: '#000000',
   openGraph: {
     type: 'website',
     siteName: 'ClaimEase',
@@ -22,6 +21,10 @@ export const metadata = {
     title: 'ClaimEase — Make your PIP claim easier',
     description: 'Turn your daily experiences into clear, DWP‑friendly answers. One‑time £49. Free appeal support.',
   },
+};
+
+export const viewport = {
+  themeColor: '#000000',
 };
 
 export default function RootLayout({
