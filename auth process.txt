@@ -1,0 +1,308 @@
+0) How the flow will work (high-level)
+
+User types email on the landing page (www) → Clicks Start my claim → full-page redirect to your App auth page with the email in the URL.
+
+App (app) runs an identifier-first auth screen:
+
+If email exists → show Password → Sign in
+
+If new email → show Create password → Create account
+
+After auth:
+
+If a plan was passed from landing → go straight to Stripe Checkout
+
+Else → show Choose plan then Stripe Checkout
+
+After Stripe success → back to app → Onboarding.
+
+Stripe webhook gives you the name (so you don’t need to ask it on the landing page).
+
+1) Landing Project (www.claimease.co.uk
+)
+A. Hero form (email-only)
+
+Page: / (Home)
+
+Component: Your hero card
+
+Fields:
+
+Email (required)
+
+Plan (optional, radio or buttons: standard | pro)
+
+Action on submit (button “Start my claim”)
+
+In Trae: Form → On Submit → Navigate to URL
+
+URL:
+
+https://app.claimease.co.uk/auth?email={{email}}&plan={{plan}}
+
+
+If you don’t have a plan selector on www, just omit &plan={{plan}}.
+
+What to expect:
+Clicking the CTA performs a full-page redirect to the app’s /auth page with the email prefilled via querystring. No cookies on www, so no CORS/cookie headaches.
+
+B. (Optional) Pricing page buttons
+
+If you have a Pricing page with “Get started” buttons:
+
+On click → Navigate to
+
+https://app.claimease.co.uk/auth?email={{captureFromModalOrBlank}}&plan=standard
+
+
+If you don’t capture an email on Pricing, still send them to /auth (the app will ask for email there).
+
+2) App Project (app.claimease.co.uk)
+A. Auth page (/auth) — Identifier-first UI
+
+Page setup
+
+Create page: /auth
+
+Layout:
+
+Block 1 — Email
+
+Input Email
+
+Button Continue
+
+Block 2 — Password (hidden by default)
+
+Input Password (+ “Show” toggle)
+
+Link Forgot password?
+
+Button Sign in
+
+Block 3 — Create Password (hidden by default)
+
+Input Create password
+
+Legal line: “By continuing, you agree to our Terms & Privacy Policy.”
+
+Button Create account
+
+Prefill email from URL
+
+On page load, set Email input value from URLSearchParams.email.
+
+Button: Continue (logic)
+
+On click:
+
+Try to sign in silently with email and a dummy password (or better: call “fetch sign-in methods for email” if your auth provider supports it).
+
+Branch:
+
+If user exists:
+
+Hide Create Password block
+
+Show Password block
+
+Focus Password input
+
+If user not found:
+
+Hide Password block
+
+Show Create Password block
+
+Focus Create Password input
+
+If Trae doesn’t have a “check user exists” helper:
+
+Option 1: Use your auth provider’s “fetch sign-in methods for email” (Firebase) or “admin get user by email” (server call).
+
+Option 2 (simplest): Show Password and Create Password blocks conditionally after the Continue button based on the API response when you attempt sign-in:
+
+If sign-in returns user-not-found → switch to Create Password block
+
+If sign-in returns wrong-password → stay on Password block with error
+
+If sign-in succeeds → proceed
+
+Button: Sign in
+
+Call Sign in with Email + Password.
+
+On success:
+
+If plan exists in URL or state → go to /checkout?plan={{plan}}
+
+Else → go to /plans
+
+Button: Create account
+
+Call Sign up with Email + Password (also send verification email in background).
+
+On success:
+
+Store plan from URL into state if present
+
+Navigate to /checkout?plan={{planOrDefault}} or /plans
+
+Forgot password
+
+Standard Send reset email action → show confirmation toast/text.
+
+B. Plans & Checkout
+
+If you show a Plans page (/plans):
+
+Each plan button → Navigate to /checkout?plan=standard|pro.
+
+Checkout page (/checkout)
+
+On load:
+
+Read plan from URLSearchParams.plan (fallback to standard).
+
+Create Stripe Checkout Session (server action or Trae connector):
+
+Parameters:
+
+price = your Stripe Price ID (based on plan)
+
+customer_email = current user’s email
+
+mode = payment (one-off) or subscription (if you ever switch)
+
+success_url = https://app.claimease.co.uk/onboarding?session_id={CHECKOUT_SESSION_ID}
+
+cancel_url = https://app.claimease.co.uk/checkout?plan={{plan}}
+
+Redirect user to session.url.
+
+What to expect:
+Stripe collects name (and address if you enable it). You don’t need to ask it earlier.
+
+C. Post-payment onboarding (/onboarding)
+
+On load:
+
+Read session_id from URL.
+
+(Optional) Call your backend to retrieve Checkout Session → Customer.
+
+Upsert user profile with name from Stripe if you don’t already have it.
+
+Show “Finish setup” if anything is missing (e.g., address), otherwise Start claim.
+
+D. Auth Guard (protect app routes)
+
+Add route protection (Trae middleware/guards) for:
+/dashboard, /claim/*, /onboarding, /checkout.
+
+If not authenticated → redirect to /auth?email={{knownOrBlank}}.
+
+3) Stripe Dashboard (one-time settings)
+
+Products/Prices
+
+Create Standard (£49) and Pro (£79) prices (one-time).
+
+Checkout Settings
+
+Enable Collect customer name.
+
+(Optional) Enable Address if you need receipts with addresses.
+
+Webhooks
+
+Add endpoint: https://app.claimease.co.uk/api/stripe/webhook
+
+Events:
+
+checkout.session.completed
+
+(Optional) customer.updated, payment_intent.succeeded
+
+In your webhook handler:
+
+Fetch session.customer → get Customer (name, email)
+
+Upsert to your Users table and attach purchase/plan
+
+4) Cookies, CORS & domains (keep this simple)
+
+Because you redirect full-page from www to app for auth, only the app sets cookies. That’s ideal.
+
+Session cookies on the app should be:
+Secure; HttpOnly; SameSite=Lax; Path=/
+(Domain can be left as app.claimease.co.uk. You don’t need cross-subdomain cookies for this flow.)
+
+Do not try to set auth cookies from the landing project.
+
+5) Legal & GDPR (minimum)
+
+Under the hero CTA on www:
+“By continuing, you agree to our Terms and Privacy Policy.”
+
+On /auth when creating account: repeat the same line.
+
+Keep marketing emails opt-in (unchecked by default). Transactional emails (reset, receipts) are fine without opt-in.
+
+6) Copy to paste (fast)
+
+Hero CTA: Start my claim
+
+Auth title: Let’s get you in
+
+Continue button: Continue
+
+Password path title: Welcome back. Enter your password.
+
+Create password path title: Create a password to continue.
+
+Forgot link: Forgot password?
+
+Checkout CTA: Secure checkout
+
+Onboarding heading: You’re in. Let’s finish setup.
+
+7) QA checklist (run these tests)
+
+Landing → App
+
+ Typing my email on www sends me to https://app.../auth?email=… with Email prefilled.
+
+Identifier-first
+
+ Existing email → shows Password (errors show clearly for wrong password).
+
+ New email → shows Create password (legal line visible).
+
+Stripe
+
+ /checkout?plan=standard routes me to Stripe with correct price.
+
+ After paying, I return to /onboarding and I’m still logged in.
+
+ Webhook writes name + email to my user profile.
+
+Guards
+
+ Hitting /dashboard while logged out redirects to /auth.
+
+Emails
+
+ Password reset email arrives.
+
+ (Optional) Email verification works; block exports/uploads until verified.
+
+8) Troubleshooting (common gotchas)
+
+Password step never appears: Add the “check user exists” branch. If provider lacks it, branch based on sign-in error codes.
+
+After Stripe I’m logged out: Set session cookies with SameSite=Lax; Secure; HttpOnly. Avoid SameSite=Strict.
+
+Webhook not firing: Confirm the exact URL and events in Stripe; check logs in Stripe Dashboard → Developers → Webhooks.
+
+Plan not remembered: Pass plan as a query param from www or set a state variable on /auth before navigating to /checkout.

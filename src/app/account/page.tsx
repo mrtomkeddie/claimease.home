@@ -4,7 +4,7 @@ import { useUser } from '@/contexts/UserContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, User as UserIcon, Bell, CreditCard, Shield, Crown, CheckCircle } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Bell, CreditCard, Shield, Crown, CheckCircle, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { UserTier, PRICING } from '@/lib/constants';
@@ -30,10 +30,64 @@ export default function AccountPage() {
   const isStandardTier = user.tier === UserTier.SINGLE_CLAIM;
   const isProTier = user.tier === UserTier.UNLIMITED_CLAIMS;
 
-  const handleUpgradeToPro = () => {
-    // TODO: Implement payment flow for upgrade
-    console.log('Upgrade to Pro clicked');
+  const handleUpgradeToPro = async () => {
+    try {
+      const response = await fetch('/api/user/upgrade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.name,
+          planType: 'pro',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.checkout_url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.checkout_url;
+      } else {
+        console.error('Upgrade failed:', data.error);
+        alert('Upgrade failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Upgrade request failed:', error);
+      alert('Upgrade request failed. Please try again.');
+    }
   };
+
+  // Check for payment success/cancel in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const upgradeStatus = urlParams.get('upgrade');
+    
+    if (upgradeStatus === 'success') {
+      // Refresh user data
+      fetch('/api/user/me', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      })
+      .then(response => response.json())
+      .then(userData => {
+        setUser(userData);
+      })
+      .catch(error => {
+        console.error('Error refreshing user data:', error);
+      });
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, '/account');
+    } else if (upgradeStatus === 'cancelled') {
+      // Clean up URL
+      window.history.replaceState({}, document.title, '/account');
+    }
+  }, [setUser]);
 
   return (
     <div className="space-y-8">
@@ -75,14 +129,16 @@ export default function AccountPage() {
                 <CardHeader>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                            <UserIcon className="h-5 w-5 text-primary" />
+                            <Settings className="h-5 w-5 text-primary" />
                         </div>
-                        <CardTitle className="text-lg">Profile Settings</CardTitle>
+                        <CardTitle className="text-lg">Account Settings</CardTitle>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <CardDescription className="mb-4">Update your name, email, and password.</CardDescription>
-                    <Button variant="outline">Edit Profile</Button>
+                    <CardDescription className="mb-4">Update your email and password.</CardDescription>
+                    <Button asChild variant="outline">
+                        <Link href="/account/settings">Manage Settings</Link>
+                    </Button>
                 </CardContent>
             </Card>
             

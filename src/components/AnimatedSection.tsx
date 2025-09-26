@@ -20,7 +20,7 @@ export function AnimatedSection({
   animation = 'on-appear',
   delay = 0,
   threshold = 0.1,
-  rootMargin = '0px 0px -100px 0px',
+  rootMargin = '0px 0px -50px 0px',
   debug = false,
 }: AnimatedSectionProps) {
   const { ref, isIntersecting, prefersReducedMotion } = useIntersectionObserver({
@@ -46,6 +46,8 @@ export function AnimatedSection({
       )}
       style={{
         transitionDelay: delay ? `${delay}ms` : undefined,
+        backfaceVisibility: 'hidden',
+        transformStyle: 'preserve-3d',
       }}
       data-animation={animation}
       data-intersecting={isIntersecting}

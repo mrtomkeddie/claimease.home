@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { onAuthChange } from '@/lib/firebase-auth-simple';
 import { UserTier, UserTierType, CLAIM_LIMITS } from '@/lib/constants';
 
 export interface User {
@@ -21,12 +22,40 @@ interface UserContextType {
   canCreateClaim: () => boolean;
   incrementClaimCount: () => void;
   getRemainingClaims: () => number;
+  loading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Listen for Firebase auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthChange(async (firebaseUser) => {
+      if (firebaseUser) {
+        // Convert Firebase user to your app user format
+        const appUser: User = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || '',
+          email: firebaseUser.email || '',
+          timezone: 'UTC',
+          pip_focus: [],
+          created_at: firebaseUser.metadata.creationTime || new Date().toISOString(),
+          tier: UserTier.FREE_CLAIMS,
+          claims_used: 0,
+          claims_remaining: CLAIM_LIMITS[UserTier.FREE_CLAIMS]
+        };
+        setUser(appUser);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const canCreateClaim = (): boolean => {
     if (!user) return false;
@@ -57,7 +86,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser, 
       canCreateClaim, 
       incrementClaimCount, 
-      getRemainingClaims 
+      getRemainingClaims,
+      loading
     }}>
       {children}
     </UserContext.Provider>

@@ -19,11 +19,11 @@ interface OnboardingProps {
 
 export function Onboarding({ onComplete }: OnboardingProps) {
   const [formData, setFormData] = useState({
-    name: 'Jane Doe',
-    email: 'jane.doe@example.com',
+    email: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'standard' | 'pro'>('standard');
+  const [errors, setErrors] = useState<{name?: string; email?: string}>({});
 
   // Animation refs
   const heroRef = useRef<HTMLDivElement>(null);
@@ -50,28 +50,44 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: {email?: string} = {};
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Please enter your email address';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsSubmitting(true);
 
-    // Simulate network request
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Create a dummy user object
-    const dummyUser: User = {
-      id: 'usr_12345',
-      name: formData.name,
-      email: formData.email,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      pip_focus: ['PIP (Personal Independence Payment)'],
-      created_at: new Date().toISOString(),
-      tier: selectedPlan === 'pro' ? UserTier.UNLIMITED : UserTier.SINGLE_CLAIM,
-      claims_used: 0, // Start with 0 claims used
-      claims_remaining: selectedPlan === 'pro' ? -1 : 1, // Pro gets unlimited (-1), Standard gets 1
-    };
-
-    onComplete(dummyUser);
-    setIsSubmitting(false);
+    try {
+      // Redirect to app with email and plan parameters
+      const appUrl = `https://app.claimease.co.uk/auth?email=${encodeURIComponent(formData.email)}&plan=${selectedPlan}`;
+      window.location.href = appUrl;
+    } catch (error) {
+      console.error('Error redirecting to app:', error);
+      alert('There was an error processing your request. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   const features = [
@@ -113,50 +129,69 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               </AnimatedSection>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 flex-1 lg:items-center pb-12 pt-4 sm:pt-6">
-              <div className="lg:col-span-7 flex flex-col justify-center space-y-4 sm:space-y-6 lg:space-y-8" ref={heroContentRef}>
-                <AnimatedSection animation="slide-up" className="space-y-3 sm:space-y-4">
-                    <h1 className={`${gilroyHeavy.className} text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] text-foreground max-w-3xl`}>
-                      Struggling with your PIP application?{' '}
-                      <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                        ClaimEase makes it easier.
-                      </span>
-                    </h1>
-                    <p className="text-base sm:text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl">
-                      Answer simple questions. We'll turn them into clear, DWP-friendly answers — in your own words, made stronger.
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-16 flex-1 lg:items-center pb-12 pt-4 sm:pt-6">
+              <div className="lg:col-span-7 flex flex-col justify-center space-y-8 lg:space-y-12" ref={heroContentRef}>
+                <AnimatedSection animation="slide-up" className="space-y-6 lg:space-y-8">
+                    <div className="space-y-4">
+                      <div className="inline-flex items-center px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium">
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        AI-Powered PIP Assistance
+                      </div>
+                      <h1 className={`${gilroyHeavy.className} text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] text-foreground max-w-4xl`}>
+                        Struggling with your{' '}
+                        <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                          PIP application?
+                        </span>
+                        <br />
+                        We make it easier.
+                      </h1>
+                    </div>
+                    <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed max-w-3xl">
+                      Answer simple questions in plain English. Our AI transforms them into clear, DWP-friendly answers that strengthen your claim.
                     </p>
-                    {/* Hero CTA removed: form is visible within hero */}
-                    {/* Previously contained a scroll button and helper text. Intentionally left blank for layout spacing. */}
-                    {/* Spacer removed to tighten layout now that CTA is gone */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <span className="text-sm font-medium text-foreground">Built specifically for PIP claims</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                          </svg>
+                        </div>
+                        <span className="text-sm font-medium text-foreground">Professional, DWP-friendly language</span>
+                      </div>
+                    </div>
                 </AnimatedSection>
               </div>
 
-              <div className="lg:col-span-5 flex items-start justify-center pt-4 sm:pt-6 lg:pt-10" ref={formRef}>
-                <div className="w-full max-w-md lg:sticky lg:top-26" id="start-claim">{/* adjusted offset for clearer stickiness */}
+              <div className="lg:col-span-5 flex items-start justify-center pt-4 sm:pt-6 lg:pt-8" ref={formRef}>
+                <div className="w-full max-w-sm lg:sticky lg:top-24" id="start-claim">
                   <AnimatedSection animation="scale-in" delay={200}>
-                    <Card className="w-full glass-effect backdrop-blur-lg border-primary/30">
-                    <CardHeader className="text-center space-y-3 sm:space-y-4 pb-4 sm:pb-6">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 gradient-primary rounded-2xl flex items-center justify-center mx-auto glow-primary">
-                        <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-primary-foreground" />
+                    <Card className="w-full glass-effect backdrop-blur-lg border-primary/20 shadow-xl">
+                    <CardHeader className="text-center space-y-2 pb-3">
+                      <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center mx-auto glow-primary">
+                        <Sparkles className="h-4 w-4 text-primary-foreground" />
                       </div>
-                      <div className="space-y-2 sm:space-y-3">
-                        <CardTitle className={`${gilroyHeavy.className} text-lg sm:text-xl lg:text-2xl text-foreground`}>Start Your Claim</CardTitle>
-                        <CardDescription className="text-sm sm:text-sm lg:text-base leading-relaxed text-muted-foreground px-2 sm:px-0">
-                          Let's get started. Enter your details below.
-                        </CardDescription>
+                      <div className="space-y-1">
+                        <CardTitle className={`${gilroyHeavy.className} text-base text-foreground`}>Get Started</CardTitle>
                       </div>
                     </CardHeader>
                     
-                    <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
-                      <div className="space-y-2">
-                       {/* Plan Toggle */}
-                       <div className="space-y-3 sm:space-y-4">
-                         <Label className="text-sm text-foreground">Choose Your Plan</Label>
-                         <div className="grid grid-cols-2 gap-2 p-1 bg-muted/50 rounded-lg">
+                    <CardContent className="space-y-5 px-5">
+                      {/* Compact Plan Toggle */}
+                      <div className="space-y-3">
+                         <Label className="text-sm text-foreground font-semibold">STEP 1: Choose Your Plan</Label>
+                         <div className="grid grid-cols-2 gap-2 p-1 bg-muted/30 rounded-lg">
                            <button
                              type="button"
                              onClick={() => setSelectedPlan('standard')}
-                             className={`px-3 py-3 sm:py-2 text-sm font-medium rounded-md transition-all duration-200 min-h-[44px] sm:min-h-[auto] ${
+                             className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${
                                selectedPlan === 'standard'
                                  ? 'bg-primary text-primary-foreground shadow-sm'
                                  : 'text-muted-foreground hover:text-foreground'
@@ -167,7 +202,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                            <button
                              type="button"
                              onClick={() => setSelectedPlan('pro')}
-                             className={`px-3 py-3 sm:py-2 text-sm font-medium rounded-md transition-all duration-200 min-h-[44px] sm:min-h-[auto] ${
+                             className={`px-3 py-2 text-sm font-medium rounded-md transition-all ${
                                selectedPlan === 'pro'
                                  ? 'bg-accent text-accent-foreground shadow-sm'
                                  : 'text-muted-foreground hover:text-foreground'
@@ -176,48 +211,28 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                              Pro £79
                            </button>
                          </div>
-                       </div>
-
-                       {/* Dynamic Plan Benefits */}
-                      <ul className={`space-y-2 text-xs sm:text-xs text-muted-foreground mt-0 ${selectedPlan === 'pro' ? 'text-right' : ''}`}>
-                         {selectedPlan === 'standard' ? (
-                           <>
-                             <li className={`flex items-center gap-2 ${selectedPlan === 'pro' ? 'justify-end' : ''}`}>
-                               <CheckCircle className="h-3 w-3 text-success flex-shrink-0" />
-                               <span>One full PIP claim</span>
-                             </li>
-                             <li className={`flex items-center gap-2 ${selectedPlan === 'pro' ? 'justify-end' : ''}`}>
-                               <CheckCircle className="h-3 w-3 text-success flex-shrink-0" />
-                               <span>Export answers (PDF/Word)</span>
-                             </li>
-                             <li className={`flex items-center gap-2 ${selectedPlan === 'pro' ? 'justify-end' : ''}`}>
-                               <CheckCircle className="h-3 w-3 text-success flex-shrink-0" />
-                               <span>Free appeal support</span>
-                             </li>
-                           </>
-                         ) : (
-                           <>
-                             <li className={`flex items-center gap-2 ${selectedPlan === 'pro' ? 'justify-end' : ''}`}>
-                               <CheckCircle className="h-3 w-3 text-success flex-shrink-0" />
-                               <span>Unlimited PIP claims</span>
-                             </li>
-                             <li className={`flex items-center gap-2 ${selectedPlan === 'pro' ? 'justify-end' : ''}`}>
-                               <CheckCircle className="h-3 w-3 text-success flex-shrink-0" />
-                               <span>Upload medical documents</span>
-                             </li>
-                             <li className={`flex items-center gap-2 ${selectedPlan === 'pro' ? 'justify-end' : ''}`}>
-                               <CheckCircle className="h-3 w-3 text-success flex-shrink-0" />
-                               <span>Free appeal support for every claim</span>
-                             </li>
-                           </>
-                         )}
-                       </ul>
+                         {/* Compact Plan Benefits */}
+                         <div className="bg-muted/20 rounded-lg p-3 text-xs">
+                           {selectedPlan === 'standard' ? (
+                             <div className="space-y-1">
+                               <div className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-success" /><span>One full PIP claim</span></div>
+                               <div className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-success" /><span>Export answers (PDF/Word)</span></div>
+                               <div className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-success" /><span>Free appeal support</span></div>
+                             </div>
+                           ) : (
+                             <div className="space-y-1">
+                               <div className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-success" /><span>Unlimited PIP claims</span></div>
+                               <div className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-success" /><span>Upload medical documents</span></div>
+                               <div className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-success" /><span>Free appeal support for every claim</span></div>
+                             </div>
+                           )}
+                         </div>
                       </div>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           <div className="space-y-2">
-                            <Label htmlFor="email" className="text-sm text-foreground">Email Address</Label>
+                            <Label htmlFor="email" className="text-sm text-foreground font-semibold">STEP 2: Your Email Address</Label>
                             <Input
                               id="email"
                               type="email"
@@ -225,43 +240,47 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                               placeholder="your.email@example.com"
                               required
-                              className="text-sm py-3 sm:py-2.5 bg-input/80 backdrop-blur-sm border-border/50 focus:border-primary focus:ring-primary/20 text-foreground min-h-[44px] sm:min-h-[auto]"
+                              className="text-sm py-2.5 bg-input/60 backdrop-blur-sm border-border/40 focus:border-primary focus:ring-primary/20 text-foreground"
                             />
+                            {errors.email && (
+                              <p className="text-xs text-red-500">{errors.email}</p>
+                            )}
                           </div>
                         </div>
 
                         <Button 
                           type="submit" 
-                          className="w-full text-sm py-3 sm:py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground glow-primary hover-lift transition-all duration-200 group min-h-[48px] sm:min-h-[auto]"
+                          className="w-full text-sm py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground glow-primary hover-lift transition-all duration-200 group"
                           disabled={isSubmitting}
                         >
                           <Sparkles className="h-4 w-4 mr-2" />
-                          <span className="text-sm sm:text-sm">
+                          <span className="text-sm">
                             {isSubmitting 
-                              ? 'Logging in...' 
-                              : selectedPlan === 'pro' 
-                                ? 'Start My Pro Claim for £79' 
-                                : 'Start My Claim for £49'
+                              ? 'Redirecting...' 
+                              : 'Continue to App'
                             }
                           </span>
                           <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                         </Button>
+
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">
+                            By continuing, you agree to our{' '}
+                            <a href="/terms" className="underline hover:text-foreground">Terms</a>{' '}
+                            and{' '}
+                            <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>
+                          </p>
+                        </div>
                       </form>
 
-                      <div className="text-center space-y-2 pt-3 border-t border-border/30">
-                        <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs text-muted-foreground flex-wrap">
-                          <div className="flex items-center gap-1">
-                            <Database className="h-3 w-3" />
-                            <span>Secure Storage</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Smartphone className="h-3 w-3" />
-                            <span>Mobile Friendly</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Lock className="h-3 w-3" />
-                            <span>Private</span>
-                          </div>
+                      <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground pt-2 border-t border-border/20">
+                        <div className="flex items-center gap-1">
+                          <Lock className="h-3 w-3" />
+                          <span>Secure</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Database className="h-3 w-3" />
+                          <span>Private</span>
                         </div>
                       </div>
 
@@ -401,7 +420,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                     </ul>
                     
                     <Button onClick={scrollToForm} className="w-full bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground mt-6 min-h-[44px] py-3 transition-all duration-200">
-                      Start My Claim for £49 →
+                      Start My Claim (£49) →
                     </Button>
                   </CardContent>
                 </Card>
@@ -571,7 +590,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               
               <AnimatedSection animation="scale-in" delay={200}>
                 <Button size="lg" onClick={scrollToForm} className="bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground px-8 py-3 min-h-[44px] transition-all duration-200">
-                  Start My Claim for £49 →
+                  Start My Claim (£49) →
                 </Button>
               </AnimatedSection>
             </div>
@@ -579,7 +598,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             {/* Mobile Sticky CTA */}
             <div className="md:hidden fixed bottom-4 left-0 right-0 flex justify-center z-50 px-4">
               <Button onClick={scrollToForm} className="px-6 py-3 bg-primary text-primary-foreground shadow-lg rounded-full min-h-[44px] hover:bg-primary/90 active:bg-primary/80 transition-all duration-200">
-                Start My Claim for £49 →
+                Start My Claim (£49) →
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>

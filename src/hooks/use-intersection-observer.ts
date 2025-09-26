@@ -12,8 +12,8 @@ export function useIntersectionObserver(
   options: UseIntersectionObserverOptions = {}
 ) {
   const {
-    threshold = 0.1,
-    rootMargin = '0px 0px -100px 0px',
+    threshold = 0.15,
+    rootMargin = '0px 0px -50px 0px',
     triggerOnce = true,
   } = options;
 
@@ -37,16 +37,21 @@ export function useIntersectionObserver(
       return;
     }
 
+    // Use requestAnimationFrame for smooth intersection detection
+    let animationFrameId: number;
     const observer = new IntersectionObserver(
       ([entry]) => {
         const isVisible = entry.isIntersecting;
         
-        if (isVisible && (!triggerOnce || !hasTriggered)) {
-          setIsIntersecting(true);
-          setHasTriggered(true);
-        } else if (!triggerOnce && !isVisible) {
-          setIsIntersecting(false);
-        }
+        // Use requestAnimationFrame to ensure smooth animations
+        animationFrameId = requestAnimationFrame(() => {
+          if (isVisible && (!triggerOnce || !hasTriggered)) {
+            setIsIntersecting(true);
+            setHasTriggered(true);
+          } else if (!triggerOnce && !isVisible) {
+            setIsIntersecting(false);
+          }
+        });
       },
       {
         threshold,
@@ -56,7 +61,12 @@ export function useIntersectionObserver(
 
     observer.observe(element);
 
-    return () => observer.unobserve(element);
+    return () => {
+      observer.unobserve(element);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [threshold, rootMargin, triggerOnce, hasTriggered]);
 
   return { ref: elementRef, isIntersecting, prefersReducedMotion };
